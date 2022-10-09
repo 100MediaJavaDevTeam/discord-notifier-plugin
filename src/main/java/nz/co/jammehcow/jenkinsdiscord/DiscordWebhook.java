@@ -3,6 +3,7 @@ package nz.co.jammehcow.jenkinsdiscord;
 import jenkins.model.Jenkins;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
+import kong.unirest.MultipartBody;
 import kong.unirest.Proxy;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
@@ -23,6 +24,7 @@ class DiscordWebhook {
     private JSONArray fields;
     private InputStream file;
     private String filename;
+    private long threadId = -1;
 
     static final int TITLE_LIMIT = 256;
     static final int DESCRIPTION_LIMIT = 2048;
@@ -180,6 +182,19 @@ class DiscordWebhook {
         return this;
     }
 
+    /**
+     * Sets the thread ID.
+     * If the webhook points to a Discord forum channel,
+     * a thread ID must be specified to determine which post to send the message to.
+     *
+     * @param threadId the thread ID snowflake
+     * @return this
+     */
+    public DiscordWebhook setThreadId(long threadId) {
+        this.threadId = threadId;
+        return this;
+    }
+
     DiscordWebhook setFile(InputStream is, String filename) {
         this.file = is;
         this.filename = filename;
@@ -208,17 +223,15 @@ class DiscordWebhook {
                     Unirest.config().proxy(new Proxy(proxyIP, proxyPort));
                 }
             }
-            HttpResponse<JsonNode> response;
+            MultipartBody request = Unirest.post(this.webhookUrl)
+                    .field("payload_json", obj.toString());
             if (file != null) {
-                response = Unirest.post(this.webhookUrl)
-                        .field("payload_json", obj.toString())
-                        .field("file", file, filename)
-                        .asJson();
-            } else {
-                response = Unirest.post(this.webhookUrl)
-                        .field("payload_json", obj.toString())
-                        .asJson();
+                request.field("file", file, filename);
             }
+            if (threadId != -1) {
+                request.queryString("thread_id", threadId);
+            }
+            HttpResponse<JsonNode> response = request.asJson();
 
             if (response.getStatus() < 200 || response.getStatus() >= 300) {
                 throw new WebhookException(response.getBody().getObject().toString(2));

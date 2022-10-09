@@ -37,6 +37,7 @@ public class DiscordPipelineStep extends AbstractStepImpl {
     private boolean enableArtifactsList;
     private boolean showChangeset;
     private String scmWebUrl;
+    private long threadId = -1;
 
     @DataBoundConstructor
     public DiscordPipelineStep(String webhookURL) {
@@ -182,6 +183,15 @@ public class DiscordPipelineStep extends AbstractStepImpl {
         return scmWebUrl;
     }
 
+    @DataBoundSetter
+    public void setThreadId(long threadId) {
+        this.threadId = threadId;
+    }
+
+    public long getThreadId() {
+        return threadId;
+    }
+
     public static class DiscordPipelineStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
         @Inject
         transient DiscordPipelineStep step;
@@ -215,6 +225,7 @@ public class DiscordPipelineStep extends AbstractStepImpl {
             wh.setTitle(checkLimitAndTruncate("title", step.getTitle(), TITLE_LIMIT));
             wh.setURL(step.getLink());
             wh.setThumbnail(step.getThumbnail());
+            wh.setThreadId(step.getThreadId());
 
             if (step.getEnableArtifactsList() || step.getShowChangeset()) {
                 JenkinsLocationConfiguration globalConfig = JenkinsLocationConfiguration.get();
